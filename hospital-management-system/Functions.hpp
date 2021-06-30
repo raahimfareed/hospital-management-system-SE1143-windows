@@ -59,6 +59,17 @@ bool decrypt(std::string text, std::string key, std::string encryptedText);
 
 std::string userTypeToString(const UserType& type);
 
+void exitProgram(bool& quit);
+
+void credits();
+
+void help();
+
+void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, const UserType& userType);
+
+void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, const UserType& userType);
+
+
 
 
 

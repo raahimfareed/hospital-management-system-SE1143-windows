@@ -295,7 +295,106 @@ void menu(const std::unique_ptr<User>& loggedInUser, const MenuLevel& menuLevel,
 
 void processInput(std::string& userInput, std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, bool& quit)
 {
-    
+    switch (loggedInUser->getUserType())
+    {
+        case UserType::Admin:
+            break;
+        case UserType::Patient:
+            break;
+        case UserType::Guest:
+            switch (currentMenu)
+            {
+
+            // Main Menu
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'L':
+                    breadcrumb.push_back("login");
+                    currentMenu = MenuLevel::Login;
+                    break;
+                case 'S':
+                    breadcrumb.push_back("signup");
+                    currentMenu = MenuLevel::Signup;
+                    break;
+                case 'H':
+                    help();
+                    break;
+                case 'C':
+                    credits();
+                    break;
+                case 'E':
+                    exitProgram(quit);
+                    break;
+                }
+                break;
+
+
+            // Login Menu
+            case MenuLevel::Login:
+                switch (toupper(userInput[0]))
+                {
+                case 'P':
+                    breadcrumb.push_back("patient");
+                    login(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Patient);
+                    break;
+                case 'N':
+                    breadcrumb.push_back("nurse");
+                    login(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Nurse);
+                    break;
+                case 'D':
+                    breadcrumb.push_back("doctor");
+                    login(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Doctor);
+                    break;
+                case 'R':
+                    breadcrumb.push_back("receptionist");
+                    login(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Receptionist);
+                    break;
+                case 'A':
+                    breadcrumb.push_back("admin");
+                    login(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Admin);
+                    break;
+                case 'B':
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                }
+                break;
+
+            // Signup Menu
+            case MenuLevel::Signup:
+                switch (toupper(userInput[0]))
+                {
+                case 'P':
+                    breadcrumb.push_back("patient");
+                    signup(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Patient);
+                    break;
+                case 'N':
+                    breadcrumb.push_back("nurse");
+                    signup(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Nurse);
+                    break;
+                case 'D':
+                    breadcrumb.push_back("doctor");
+                    signup(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Doctor);
+                    break;
+                case 'R':
+                    breadcrumb.push_back("receptionist");
+                    signup(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Receptionist);
+                    break;
+                case 'A':
+                    breadcrumb.push_back("admin");
+                    signup(breadcrumb, loggedInUser, hospital, currentMenu, UserType::Admin);
+                    break;
+                case 'B':
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                }
+                break;
+            }
+            break;
+    }
 }
 
 std::string encrypt(std::string text, std::string key)
@@ -364,6 +463,192 @@ std::string userTypeToString(const UserType& type)
         break;
     }
 }
+
+void exitProgram(bool& quit)
+{
+    system(CLEAR);
+    char uInput;
+    printf("%s Are you sure you want to quit? %ses/%so: ", formatText("[WARNING]:", TextColor::fRed, TextColor::bDefault, true).c_str(), formatText("[Y]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+    input(uInput);
+    if (toupper(uInput) == 'Y')
+    {
+        quit = true;
+    }
+    haltProgram();
+}
+
+void credits()
+{
+    printf("Made By: Raahim Fareed BSE203039\nSubject: OOP S1 SE1143\nInstructor: Faria Nasir\n");
+    haltProgram();
+}
+
+void help()
+{
+    haltProgram();
+}
+
+void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, const UserType& userType)
+{
+    system(CLEAR);
+    std::string filePath = "users.db";
+    File userDb(filePath);
+    std::fstream* pFile = userDb.getFile();
+    bool userExists = false;
+    std::string fileLine;
+
+    pFile->open(filePath, std::ios::in);
+
+    std::string username;
+    std::string password;
+    printf("Please enter your %s: ", formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+    input(username);
+
+    while (username.length() == 0)
+    {
+        printf("%s %s\nPlease enter your %s again: ", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str(), formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+        input(username);
+    }
+
+    printf("Please enter your %s: ", formatText("password", TextColor::fDefault, TextColor::bDefault, true).c_str());
+    input(password);
+
+
+    std::vector<std::string> userInformation;
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+
+
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        if ((UserType)std::stoi(userInformation[0]) == userType)
+        {
+            if (username == userInformation[1])
+            {
+                userExists = true;
+                unsigned int tries = 0;
+                bool userLoggedIn = false;
+                while (tries < 3 && !userLoggedIn)
+                {
+
+                    if (decrypt(password, username, userInformation[2]))
+                    {
+                        
+                        loggedInUser = std::make_unique<User>(username, password, userType);
+                        printf("%s Logged In!\n", formatText("[SUCCESS]:", TextColor::fGreen).c_str());
+                        userLoggedIn = true;
+                        break;
+                    }
+
+                    printf("%s, %d tries left\n", Error::get("password-invalid").c_str(), 3 - tries);
+                    ++tries;
+                }
+
+                // Max retries reached error message
+                if (userLoggedIn)
+                {
+                    //
+                }
+
+                haltProgram();
+                break;
+            }
+        }
+    }
+    pFile->close();
+
+    if (!userExists)
+    {
+        printf("%s %s\n", formatText("[Error]: ", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("user-not-found").c_str());
+        haltProgram();
+    }
+
+    currentMenu = MenuLevel::Root;
+    breadcrumb.clear();
+}
+
+void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, const UserType& userType)
+{
+    system(CLEAR);
+    std::string filePath = "users.db";
+    File userDb(filePath);
+    std::fstream* pFile = userDb.getFile();
+    bool userExists = false;
+    std::string fileLine;
+
+    pFile->open(filePath, std::ios::in);
+
+    std::string username;
+    std::string password;
+    printf("Please enter a %s: ", formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+    input(username);
+
+    while (username.length() == 0)
+    {
+        printf("%s %s \nPlease enter your %s again: ", formatText("[Error]: ", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str(), formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+        input(username);
+    }
+
+    printf("Please enter a %s, %s: ", formatText("password", TextColor::fDefault, TextColor::bDefault, true).c_str(), formatText("it should be at least 8 characters", TextColor::fDefault, TextColor::bDefault, false, true).c_str());
+    input(password);
+
+    while (password.length() < 8)
+    {
+        printf("%s %s\nPlease enter your %s again: ", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("password-small").c_str(), formatText("password", TextColor::fDefault, TextColor::bDefault, true).c_str());
+        input(password);
+    }
+
+    std::vector<std::string> userInformation;
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        if ((UserType)std::stoi(userInformation[0]) == UserType::Patient)
+        {
+            if (username == userInformation[1])
+            {
+                userExists = true;
+                printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("user-exists").c_str());
+                haltProgram();
+                break;
+            }
+        }
+    }
+    pFile->close();
+
+    if (!userExists)
+    {
+        DateTime currentDate;
+        std::string row = std::to_string((int)userType) + '|' + username + '|' + encrypt(password, username) + '|' + currentDate.mUtcString;
+        userDb.write(row);
+        printf("%s Your account has been created.\n", formatText("[SUCCESS]:", TextColor::fGreen).c_str());
+        haltProgram();
+    }
+
+    currentMenu = MenuLevel::Root;
+    breadcrumb.clear();
+}
+
+
+
 
 
 
