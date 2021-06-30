@@ -15,11 +15,11 @@
 #include "Hospital.hpp"
 #include "User.hpp"
 
-void loading(const int& loop)
+void loading(const size_t& loop)
 {
     using namespace std::chrono_literals;
     printf("Loading program, please wait");
-    for (size_t i = 0; i < 3; ++i)
+    for (size_t i = 0; i < loop; ++i)
     {
         std::this_thread::sleep_for(500ms);
         printf(".");
@@ -186,17 +186,16 @@ void haltProgram(const bool message)
     std::cin.get();
 }
 
-void inputPlaceholder(const bool hidden)
+void inputPlaceholder(const std::vector<std::string>& breadcrumbs, const std::unique_ptr<User>& loggedInUser, const bool hidden)
 {
     if (hidden) return;
 
-    std::string placeholder = "";
-    // std::string placeholder = formatText(username + "@" + userType + "\n~", TextColor::fMagenta, TextColor::bDefault, true);
+    std::string placeholder = formatText(loggedInUser->getUsername() + "@" + userTypeToString(loggedInUser->getUserType()) + "\n~", TextColor::fMagenta, TextColor::bDefault, true);
 
-    // for (std::string location : gMenuBreadcrumbs)
-    // {
-    //     placeholder.append(formatText('/' + location, TextColor::fMagenta, TextColor::bDefault, true));
-    // }
+    for (std::string location : breadcrumbs)
+    {
+        placeholder.append(formatText('/' + location, TextColor::fMagenta, TextColor::bDefault, true));
+    }
 
     placeholder.append(formatText(" > ", TextColor::fMagenta, TextColor::bDefault, true));
 
@@ -210,8 +209,9 @@ void header()
     printf("----------------------------------\n");
 }
 
-void firstTimeSetup()
+void firstTimeSetup(std::unique_ptr<User>& loggedInUser, File& configFile)
 {
+    system(CLEAR);
     header();
     printf("Welcome to %s!\nThis is your first time starting this program therefore you will need to create an admin account!\nDo you wish to proceed? %ses/%so: ", formatText("Extricate", TextColor::fCyan, TextColor::bDefault, true).c_str(), formatText("[Y]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str());
     std::string choice;
@@ -220,7 +220,48 @@ void firstTimeSetup()
     {
         std::string username;
         std::string password;
-        User admin();
+        bool inputError;
+
+        do
+        {
+            inputError = false;
+            printf("Please choose a username: ");
+            input(username);
+
+            if (username.empty())
+            {
+                printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str());
+
+                inputError = true;
+            }
+
+
+        } while (inputError);
+
+        do
+        {
+            inputError = false;
+            printf("Please choose a password: ");
+            input(password);
+
+            if (password.empty() || password.length() < 8)
+            {
+                printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("password-empty").c_str());
+
+                inputError = true;
+            }
+        } while (inputError);
+
+        std::unique_ptr<User> admin = std::make_unique<User>(username, password, UserType::Admin);
+        configFile.write(std::to_string((int)admin->getUserType()) + "|" + admin->getUsername() + "|" + encrypt(admin->getUsername(), admin->getPassword()) + "|" + std::to_string(admin->getJoinDate().mCreationTime));
+
+        printf("Would you like to login as admin? %ses/%so: ", formatText("[Y]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+        input(choice);
+
+        if (toupper(choice[0]) == 'Y')
+        {
+            loggedInUser = std::move(admin);
+        }
         return;
     }
 
@@ -229,37 +270,32 @@ void firstTimeSetup()
     exit(EXIT_SUCCESS);
 }
 
-bool init(bool& mainLoop, std::unique_ptr<User>& loggedInUser, std::string& menuChoice)
+bool init(bool& mainLoop, std::unique_ptr<User>& loggedInUser, MenuLevel& menuLevel, std::string& menuChoice)
 {
     File configFile("config.ini");
     std::string initLine = configFile.search(1);
-    if (initLine == "")
-    {
-        firstTimeSetup();
-    }
+    loggedInUser = std::make_unique<User>();
     mainLoop = false;
     menuChoice = "";
-    loggedInUser = std::move(std::unique_ptr<User>());
+    menuLevel = MenuLevel::Root;
+    if (initLine == "")
+    {
+        firstTimeSetup(loggedInUser, configFile);
+    }
     return true;
 }
 
-void menu(std::string userInput)
+void menu(const std::unique_ptr<User>& loggedInUser, const MenuLevel& menuLevel, const std::vector<std::string>& breadcrumbs)
 {
     system(CLEAR);
-
     header();
-
-    switch (toupper(userInput[0]))
-    {
-    case '\0':
-        printf("%s", Menu::get("root").c_str());
-        break;
-    }
+    printf("%s", Menu::get(std::make_pair(loggedInUser->getUserType(), menuLevel)).c_str());
+    inputPlaceholder(breadcrumbs, loggedInUser);
 }
 
-void processInput(std::string& userInput)
+void processInput(std::string& userInput, std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, bool& quit)
 {
-    haltProgram();
+    
 }
 
 std::string encrypt(std::string text, std::string key)
@@ -301,21 +337,50 @@ bool decrypt(std::string text, std::string key, std::string encryptedText)
     return false;
 }
 
+std::string userTypeToString(const UserType& type)
+{
+    switch (type)
+    {
+    case UserType::Guest:
+        return "Guest";
+        break;
+    case UserType::Patient:
+        return "Patient";
+        break;
+    case UserType::Nurse:
+        return "Nurse";
+        break;
+    case UserType::Doctor:
+        return "Doctor";
+        break;
+    case UserType::Receptionist:
+        return "Receptionist";
+        break;
+    case UserType::Admin:
+        return "Admin";
+        break;
+    default:
+        return "User";
+        break;
+    }
+}
 
 
 
 void run()
 {
-    loading();
-    std::unique_ptr<User> pLoggedInUser;
+    loading(1);
     bool quit;
-    std::string menuChoice;
     Hospital hospital;
-    bool firstBoot = init(quit, pLoggedInUser, menuChoice);
+    MenuLevel currentMenu;
+    std::string menuChoice;
+    std::vector<std::string> menuBreadcrumbs;
+    std::unique_ptr<User> pLoggedInUser = nullptr;
+    init(quit, pLoggedInUser, currentMenu, menuChoice);
     do
     {
-        menu(menuChoice);
+        menu(pLoggedInUser, currentMenu, menuBreadcrumbs);
         input(menuChoice);
-        processInput(menuChoice);
+        processInput(menuChoice, menuBreadcrumbs, pLoggedInUser, hospital, currentMenu, quit);
     } while (!quit);
 }

@@ -4,8 +4,7 @@
 
 File::File(std::string path)
     :mPath(path)
-{
-}
+{}
 
 void File::write(std::string line, bool newLine)
 {

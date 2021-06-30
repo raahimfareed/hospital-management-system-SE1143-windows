@@ -2,11 +2,13 @@
 #include <string>
 #include <map>
 
+#include "Utils.hpp"
+
 class Menu
 {
 private:
-    static std::map<std::string, std::string> mMenus;
+    static std::map<std::pair<UserType, MenuLevel>, std::string > mMenus;
 
 public:
-    static std::string get(std::string key);
+    static std::string get(std::pair<UserType, MenuLevel> key);
 };

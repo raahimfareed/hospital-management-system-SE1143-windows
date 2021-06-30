@@ -5,14 +5,14 @@
 #include "Utils.hpp"
 #include "Functions.hpp"
 
-std::string Menu::get(std::string key)
+std::string Menu::get(std::pair<UserType, MenuLevel> key)
 {
     return mMenus[key];
 }
 
-std::map<std::string, std::string> Menu::mMenus = {
+std::map<std::pair<UserType, MenuLevel>, std::string> Menu::mMenus = {
     {
-        "root",
+        std::make_pair(UserType::Guest, MenuLevel::Root),
         formatText("Main Menu", TextColor::fBlue, TextColor::bDefault, true) +
         "\n----------------------------------\n" +
         formatText("[L]", TextColor::fYellow, TextColor::bDefault, true) + "ogin\n" +
@@ -23,7 +23,7 @@ std::map<std::string, std::string> Menu::mMenus = {
         "----------------------------------\n"
     },
     {
-        "login",
+        std::make_pair(UserType::Guest, MenuLevel::Login),
         formatText("Login Menu", TextColor::fBlue, TextColor::bDefault, true) +
         "\n----------------------------------\n" +
         formatText("[P]", TextColor::fYellow, TextColor::bDefault, true) + "atient\n" +
@@ -35,7 +35,7 @@ std::map<std::string, std::string> Menu::mMenus = {
         "----------------------------------\n"
     },
     {
-        "signup",
+        std::make_pair(UserType::Guest, MenuLevel::Signup),
         formatText("Signup Menu", TextColor::fBlue, TextColor::bDefault, true) +
         "\n----------------------------------\n" +
         formatText("[P]", TextColor::fYellow, TextColor::bDefault, true) + "atient\n" +

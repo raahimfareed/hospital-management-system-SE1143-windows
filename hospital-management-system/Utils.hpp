@@ -34,3 +34,29 @@ enum class UserType
     Admin = 'A',
     Visitor = 'V',
 };
+
+enum class MenuLevel
+{
+    Root,
+    Login,
+    Signup,
+    RootHelp,
+    Credits,
+    PatientLogin,
+    PatientSignup,
+    NurseLogin,
+    NurseSignup,
+    DoctorLogin,
+    DoctorSignup,
+    ReceptionistLogin,
+    ReceptionistSignup,
+    AdminLogin,
+    AdminSignup,
+
+    PatientAppointments,
+    PatientMessages,
+    PatientJournal,
+    PatientCheckout,
+
+    UserLogout
+};
