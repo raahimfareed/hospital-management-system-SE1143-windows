@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <memory>
 
 #include "Budget.hpp"
 #include "User.hpp"

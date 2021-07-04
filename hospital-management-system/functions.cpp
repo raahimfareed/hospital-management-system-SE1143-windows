@@ -4,6 +4,7 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <sstream>
 
 
 #include "Config.hpp"
@@ -254,7 +255,7 @@ void firstTimeSetup(std::unique_ptr<User>& loggedInUser, File& configFile)
         } while (inputError);
 
         std::unique_ptr<User> admin = std::make_unique<User>(username, password, UserType::Admin);
-        configFile.write(std::to_string((int)admin->getUserType()) + "|" + admin->getUsername() + "|" + encrypt(admin->getUsername(), admin->getPassword()) + "|" + std::to_string(admin->getJoinDate().mCreationTime));
+        configFile.write(std::to_string((int)admin->getUserType()) + "|" + admin->getUsername() + "|" + encrypt(admin->getPassword(), admin->getUsername()) + "|" + std::to_string(admin->getJoinDate().mCreationTime));
 
         printf("Would you like to login as admin? %ses/%so: ", formatText("[Y]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str());
         input(choice);
@@ -926,7 +927,7 @@ void makeAppointment(std::unique_ptr<User>& loggedInUser, std::vector<std::strin
         printf("%s Influenza\n" \
             "%s Fever (Not common in everyone), Cough, Sore Throat, Runny/Stuffy Nose, Muscle/Body Ache, Headache, Fatigue (Tiredness), Vomiting (Kids), Diarrhea(Kids)\n" \
             "%s If not recovered in 2 weeks, Pneumonia may develop\n" \
-            "%s Vitamin C Supplements, Tylenol, Relenza®, Rapivab®, Xofluza®, Tamiflu®, Anti Viral Drugs\n" \
+            "%s Vitamin C Supplements, Tylenol, Relenzaï¿½, Rapivabï¿½, Xofluzaï¿½, Tamifluï¿½, Anti Viral Drugs\n" \
             "%s Antibiotic drugs will not treat Influenza\n",
             formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
             formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
@@ -1324,7 +1325,7 @@ void addFunds(Hospital& rH)
 
 void run()
 {
-    loading(1);
+    // loading(1);
     bool quit;
     Hospital hospital;
     hospital.rGetUser() = nullptr;

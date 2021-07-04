@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-    std::ios::sync_with_stdio(false);
+    // std::ios::sync_with_stdio(false);
 
     if (argc == 2 && !strcmp(argv[1], "-v"))
     {
