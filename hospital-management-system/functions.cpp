@@ -14,6 +14,7 @@
 #include "Menu.hpp"
 #include "Hospital.hpp"
 #include "User.hpp"
+#include "Log.hpp"
 
 void loading(const size_t& loop)
 {
@@ -272,7 +273,7 @@ void firstTimeSetup(std::unique_ptr<User>& loggedInUser, File& configFile)
 
 bool init(bool& mainLoop, std::unique_ptr<User>& loggedInUser, MenuLevel& menuLevel, std::string& menuChoice)
 {
-    File configFile("config.ini");
+    File configFile("users.db");
     std::string initLine = configFile.search(1);
     loggedInUser = std::make_unique<User>();
     mainLoop = false;
@@ -295,11 +296,188 @@ void menu(const std::unique_ptr<User>& loggedInUser, const MenuLevel& menuLevel,
 
 void processInput(std::string& userInput, std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, bool& quit)
 {
+    if (currentMenu == MenuLevel::Root && toupper(userInput[0]) == 'L' && loggedInUser->getUserType() != UserType::Guest)
+    {
+        logout(breadcrumb, loggedInUser, currentMenu);
+        return;
+    }
+
     switch (loggedInUser->getUserType())
     {
         case UserType::Admin:
+            switch (currentMenu)
+            {
+
+            // Main Menu
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'P':
+                    showUsers(UserType::Patient);
+                    break;
+                case 'N':
+                    showUsers(UserType::Nurse);
+                    break;
+                case 'D':
+                    showUsers(UserType::Doctor);
+                    break;
+                case 'R':
+                    showUsers(UserType::Receptionist);
+                    break;
+                case 'A':
+                    showUsers(UserType::Admin);
+                    break;
+                case 'M':
+                    showMessages();
+                    break;
+                case 'S':
+                    Log::show();
+                    haltProgram();
+                    break;
+                case 'X':
+                    resetProgram();
+                    break;
+                }
+                break;
+            }
             break;
         case UserType::Patient:
+            switch (currentMenu)
+            {
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'A':
+                    currentMenu = MenuLevel::Appointments;
+                    breadcrumb.push_back("appointment");
+                    makeAppointment(loggedInUser, breadcrumb, currentMenu);
+                    break;
+                case 'M':
+                    showMessages(loggedInUser);
+                    break;
+                case 'D':
+                    showDoctors();
+                    break;
+                case 'B':
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                }
+                break;
+            }
+            break;
+        case UserType::Doctor:
+            switch (currentMenu)
+            {
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'A':
+                    currentMenu = MenuLevel::Appointments;
+                    breadcrumb.push_back("appointment");
+                    showAppointments();
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                case 'M':
+                    sendMessages(loggedInUser);
+                    break;
+                case 'N':
+                    showUsers(UserType::Nurse);
+                    break;
+                case 'P':
+                    showUsers(UserType::Patient);
+                    break;
+                case 'B':
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                }
+                break;
+            }
+            break;
+        case UserType::Nurse:
+            switch (currentMenu)
+            {
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'A':
+                    currentMenu = MenuLevel::Appointments;
+                    breadcrumb.push_back("appointment");
+                    showAppointments();
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                case 'M':
+                    sendMessages(loggedInUser);
+                    break;
+                case 'P':
+                    showUsers(UserType::Patient);
+                    break;
+                case 'D':
+                    currentMenu = MenuLevel::Dispensary;
+                    breadcrumb.push_back("dispensary");
+                    break;
+                }
+                break;
+            case MenuLevel::Dispensary:
+                switch (toupper(userInput[0]))
+                {
+                case 'A':
+                    currentMenu = MenuLevel::Drug;
+                    breadcrumb.push_back("drug");
+                    hospital.rGetDispensary().addDrug(loggedInUser, currentMenu, breadcrumb);
+                    break;
+                case 'S':
+                    hospital.rGetDispensary().showAllDrugs();
+                    break;
+                case 'W':
+                    std::cout << "Total Funds Available: " << hospital.rGetDispensary().getBudget() << '\n';
+                    haltProgram();
+                    break;
+                case 'B':
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                }
+                break;
+            }
+            break;
+        case UserType::Receptionist:
+            switch (currentMenu)
+            {
+            case MenuLevel::Root:
+                breadcrumb.clear();
+                switch (toupper(userInput[0]))
+                {
+                case 'A':
+                    currentMenu = MenuLevel::Appointments;
+                    breadcrumb.push_back("appointment");
+                    showAppointments();
+                    currentMenu = MenuLevel::Root;
+                    breadcrumb.pop_back();
+                    break;
+                case 'M':
+                    showMessages();
+                    break;
+                case 'P':
+                    showUsers(UserType::Patient);
+                    break;
+                case 'W':
+                    std::cout << "Total Funds Available: " << hospital.rGetDispensary().getBudget() << '\n';
+                    haltProgram();
+                    break;
+                case 'F':
+                    addFunds(hospital);
+                    break;
+                }
+                break;
+            }
             break;
         case UserType::Guest:
             switch (currentMenu)
@@ -544,6 +722,7 @@ void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedIn
                     {
                         
                         loggedInUser = std::make_unique<User>(username, password, userType);
+                        Log::login(loggedInUser);
                         printf("%s Logged In!\n", formatText("[SUCCESS]:", TextColor::fGreen).c_str());
                         userLoggedIn = true;
                         break;
@@ -551,12 +730,15 @@ void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedIn
 
                     printf("%s, %d tries left\n", Error::get("password-invalid").c_str(), 3 - tries);
                     ++tries;
+
+                    printf("Please enter your %s: ", formatText("password", TextColor::fDefault, TextColor::bDefault, true).c_str());
+                    input(password);
                 }
 
                 // Max retries reached error message
-                if (userLoggedIn)
+                if (!userLoggedIn)
                 {
-                    //
+                    printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("max-password-tries").c_str());
                 }
 
                 haltProgram();
@@ -568,7 +750,7 @@ void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedIn
 
     if (!userExists)
     {
-        printf("%s %s\n", formatText("[Error]: ", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("user-not-found").c_str());
+        printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("user-not-found").c_str());
         haltProgram();
     }
 
@@ -594,7 +776,7 @@ void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedI
 
     while (username.length() == 0)
     {
-        printf("%s %s \nPlease enter your %s again: ", formatText("[Error]: ", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str(), formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+        printf("%s %s \nPlease enter your %s again: ", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str(), formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
         input(username);
     }
 
@@ -621,7 +803,7 @@ void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedI
             userInformation.push_back(value);
         }
 
-        if ((UserType)std::stoi(userInformation[0]) == UserType::Patient)
+        if ((UserType)std::stoi(userInformation[0]) == userType)
         {
             if (username == userInformation[1])
             {
@@ -637,7 +819,7 @@ void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedI
     if (!userExists)
     {
         DateTime currentDate;
-        std::string row = std::to_string((int)userType) + '|' + username + '|' + encrypt(password, username) + '|' + currentDate.mUtcString;
+        std::string row = std::to_string((int)userType) + '|' + username + '|' + encrypt(password, username) + '|' + std::to_string(currentDate.mCreationTime);
         userDb.write(row);
         printf("%s Your account has been created.\n", formatText("[SUCCESS]:", TextColor::fGreen).c_str());
         haltProgram();
@@ -647,25 +829,513 @@ void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedI
     breadcrumb.clear();
 }
 
+void logout(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, MenuLevel& currentMenu)
+{
+    loggedInUser = std::make_unique<User>();
+    breadcrumb.clear();
+    currentMenu = MenuLevel::Root;
+}
 
+void showUsers(const UserType& type)
+{
+    std::string uInput, fileLine;
+    File userFile("users.db");
+    std::fstream* pFile = userFile.getFile();
+    pFile->open("users.db", std::ios::in);
+    
+    unsigned int start = 0;
+    unsigned int count = 0;
+    const unsigned int maxRows = 5;
 
+    std::vector<std::string> userInformation;
+    system(CLEAR);
+    printf("%s Data: %d - %d\n", userTypeToString(type).c_str(), start + 1, start + maxRows);
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
 
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
 
+        if ((UserType)std::stoi(userInformation[0]) != type) continue;
+
+        time_t t = std::stoll(userInformation[3]);
+
+        printf("%d\t%s\t%s\t%s\n", ++count, userInformation[1].c_str(), userTypeToString((UserType)std::stoi(userInformation[0])).c_str(), DateTime::unixTimeToString(&t).c_str());
+        if (count % 5 == 0)
+        {
+            printf("%sext / %sxit: ", formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[E]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+            input(uInput);
+
+            if (toupper(uInput[0]) == 'N')
+            {
+                start += maxRows;
+                system(CLEAR);
+                printf("%s Data: %d - %d\n", userTypeToString(type).c_str(), start + 1, start + maxRows);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (count % 5 == 0)
+    {
+        printf("No records found!\n");
+    }
+    haltProgram();
+
+    pFile->close();
+}
+
+void resetProgram()
+{
+    system(CLEAR);
+    char uInput;
+    printf("%s Are you sure you want to reset your program? It will delete all records! %ses/%so: ", formatText("[WARNING]:", TextColor::fRed, TextColor::bDefault, true).c_str(), formatText("[Y]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+    input(uInput);
+    if (toupper(uInput) != 'Y')
+    {
+        return;
+    }
+    remove("users.db");
+    remove("log.db");
+    remove("appointments.db");
+    remove("messages.db");
+    printf("Program has been reset, you will need to restart your program to apply changes!\n");
+    haltProgram();
+    exit(EXIT_SUCCESS);
+}
+
+void makeAppointment(std::unique_ptr<User>& loggedInUser, std::vector<std::string>& breadcrumb, MenuLevel& currentMenu)
+{
+    std::string uInput;
+    menu(loggedInUser, currentMenu, breadcrumb);
+    input(uInput);
+
+    system(CLEAR);
+    switch (toupper(uInput[0]))
+    {
+    case '1':
+        printf("%s Influenza\n" \
+            "%s Fever (Not common in everyone), Cough, Sore Throat, Runny/Stuffy Nose, Muscle/Body Ache, Headache, Fatigue (Tiredness), Vomiting (Kids), Diarrhea(Kids)\n" \
+            "%s If not recovered in 2 weeks, Pneumonia may develop\n" \
+            "%s Vitamin C Supplements, Tylenol, Relenza®, Rapivab®, Xofluza®, Tamiflu®, Anti Viral Drugs\n" \
+            "%s Antibiotic drugs will not treat Influenza\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Complication]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Note]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '2':
+        printf("%s COVID-19\n" \
+            "%s Fever, Cough, Shortness of Breath, Fatigue, Headache, Body/Muscle, Loss of Taste/Smell, Sore Throat, Congestion, Nausea, Diarrhea\n" \
+            "%s Can lead to critical condition if not recovered\n" \
+            "%s Wear Mask, Wash hands regulary with soap, Use hand sanitizers, Veklury, Dexamethasone, Drink excess Water\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Complication]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '3':
+        printf("%s COVID-19\n" \
+            "%s Pink/Red eye color, Swelling of eye, Increased tears, Feel like foreign objects are in eye, Itcing/Burning/Irritation, Discharge (Pus/Mucus), Crusting of Eyelids\n" \
+            "%s Cold compresses, Artificial tears, Avoid contact lenses\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '4':
+        printf("%s HIV/AIDS\n" \
+            "%s Fever, Headache, Muscle/Joint pain, Rash, Sore throat, Weight loss, Cough, Swollen Lymph glands, Night sweats, Diarrhea\n" \
+            "%s TasP, PEP, PrEP, Use protection, Circumcision\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '5':
+        printf("%s Tetanus\n" \
+            "%s Painful Muscle Spasms, Muscle Tension, Difficulty Swallowing, Rigid Abdominal Muscles\n" \
+            "%s Care in the hospital ,Immediate treatment with medicine called human tetanus immune globulin (TIG), Aggressive wound care, Drugs to control muscle spasms, Antibiotics, Tetanus vaccination\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '6':
+        printf("%s Malaria\n" \
+            "%s Fever, Chills, General feeling of discomfort, Headache, Nausea and vomiting, Diarrhea, Abdominal pain, Muscle or joint pain, Fatigue, Rapid breathing, Rapid heart rate, Cough\n" \
+            "%s Chloroquine phosphate, Artemisinin-based combination therapies (ACTs), Atovaquone-proguanil (Malarone), Quinine sulfate (Qualaquin) with doxycycline (Oracea, Vibramycin, others), Primaquine phosphate\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '7':
+        printf("%s Pneumonia\n" \
+            "%s Chest pain when you breathe or cough, Confusion or changes in mental awareness (in adults age 65 and older), Cough, which may produce phlegm, Fatigue, Fever, sweating and shaking chills, Lower than normal body temperature (in adults older than age 65 and people with weak immune systems), Nausea, vomiting or diarrhea, Nausea, vomiting or diarrhea\n" \
+            "%s Control your fever with aspirin, Drink plenty of fluids, Do not take cough medicines without first talking to your doctor, Drink warm beverages, take steamy baths and use a humidifier, Stay away from smoke to let your lungs heal, Get lots of rest\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '8':
+        printf("%s Depression\n" \
+            "%s Feelings of sadness, tearfulness, emptiness or hopelessness, Angry outbursts, irritability or frustration, even over small matters, Loss of interest or pleasure in most or all normal activities, such as sex, hobbies or sports, Sleep disturbances, including insomnia or sleeping too much, Tiredness and lack of energy, so even small tasks take extra effort, Reduced appetite and weight loss or increased cravings for food and weight gain, Anxiety, agitation or restlessness, Slowed thinking, speaking or body movements, Feelings of worthlessness or guilt, fixating on past failures or self-blame, Trouble thinking, concentrating, making decisions and remembering things, Frequent or recurrent thoughts of death, suicidal thoughts, suicide attempts or suicide, Unexplained physical problems, such as back pain or headaches\n" \
+            "%s Psychotherapy, SSRI, SNRI, Consider joining a support group, Try relaxation techniques, meditation, and breathing exercises, Talk with family members and friends and explain how they can be helpful, Your therapist may recommend self-help materials, Regular exercise can reduce symptoms of depression and anxiety\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '9':
+        printf("%s Epilepsy\n" \
+            "%s Temporary confusion, A staring spell, Uncontrollable jerking movements of the arms and legs, Loss of consciousness or awareness, Psychic symptoms such as fear, anxiety or deja vu, Focal seizures without loss of consciousness, Focal seizures with impaired awareness, Other siezures\n" \
+            "%s Anti-seizure medications, If anti-epileptic medications don't provide satisfactory results, your doctor may suggest surgery or other therapies. You'll have regular follow-up appointments with your doctor to evaluate your condition and medications\n",
+            formatText("[Condition]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Symptoms]:", TextColor::fGreen, TextColor::bDefault, true).c_str(),
+            formatText("[Medication]:", TextColor::fGreen, TextColor::bDefault, true).c_str());
+        break;
+    case '0':
+        createAppointment(loggedInUser);
+        break;
+    case 'B': break;
+    default:
+        printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("invalid-option").c_str());
+        break;
+    }
+
+    if (toupper(uInput[0]) != 'B')
+    {
+        haltProgram();
+    }
+    currentMenu = MenuLevel::Root;
+    breadcrumb.pop_back();
+}
+
+void createAppointment(std::unique_ptr<User>& loggedInUser)
+{
+    std::string uInput;
+    File appointmentsFile("appointments.db");
+    printf("Please enter disease name: ");
+    input(uInput);
+    printf("A doctor will message you soon!\n");
+    appointmentsFile.write(loggedInUser->getUsername() + "|" + uInput + "|" + DateTime::getCurrent());
+}
+
+void showMessages()
+{
+    std::string uInput, fileLine;
+    File msgFile("messages.db");
+    std::fstream* pFile = msgFile.getFile();
+    pFile->open("messages.db", std::ios::in);
+
+    unsigned int start = 0;
+    unsigned int count = 0;
+    const unsigned int maxRows = 5;
+
+    std::vector<std::string> userInformation;
+    system(CLEAR);
+    printf("All Messages: %d - %d\n", start + 1, start + maxRows);
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        printf("%d\t%s\t%s\t%s\n", ++count, userInformation[0].c_str(), userInformation[2].c_str(), userInformation[3].c_str());
+        if (count % 5 == 0)
+        {
+            printf("%sext / %sxit: ", formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[E]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+            input(uInput);
+
+            if (toupper(uInput[0]) == 'N')
+            {
+                start += maxRows;
+                system(CLEAR);
+                printf("Messages: %d - %d\n", start + 1, start + maxRows);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (count % 5 == 0)
+    {
+        printf("No messages found!\n");
+    }
+    haltProgram();
+
+    pFile->close();
+}
+
+void showMessages(std::unique_ptr<User>& loggedInUser)
+{
+    std::string uInput, fileLine;
+    File msgFile("messages.db");
+    std::fstream* pFile = msgFile.getFile();
+    pFile->open("messages.db", std::ios::in);
+
+    unsigned int start = 0;
+    unsigned int count = 0;
+    const unsigned int maxRows = 5;
+
+    std::vector<std::string> userInformation;
+    system(CLEAR);
+    printf("Messages: %d - %d\n", start + 1, start + maxRows);
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        if (userInformation[2] != loggedInUser->getUsername()) continue;
+
+        printf("%d\t%s\t%s\t%s\n", ++count, userInformation[0].c_str(), userInformation[2].c_str(), userInformation[3].c_str());
+        if (count % 5 == 0)
+        {
+            printf("%sext / %sxit: ", formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[E]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+            input(uInput);
+
+            if (toupper(uInput[0]) == 'N')
+            {
+                start += maxRows;
+                system(CLEAR);
+                printf("Messages: %d - %d\n", start + 1, start + maxRows);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (count % 5 == 0)
+    {
+        printf("No messages found!\n");
+    }
+    haltProgram();
+
+    pFile->close();
+}
+
+void showDoctors()
+{
+    std::string uInput, fileLine;
+    File userFile("users.db");
+    std::fstream* pFile = userFile.getFile();
+    pFile->open("users.db", std::ios::in);
+
+    unsigned int start = 0;
+    unsigned int count = 0;
+    const unsigned int maxRows = 5;
+
+    std::vector<std::string> userInformation;
+    system(CLEAR);
+    printf("Available Doctors: %d - %d\n", start + 1, start + maxRows);
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        if ((UserType)std::stoi(userInformation[0]) != UserType::Doctor) continue;
+
+        time_t t = std::stoll(userInformation[3]);
+
+        printf("%d\t%s\t%s\t%s\n", ++count, userInformation[1].c_str(), userTypeToString((UserType)std::stoi(userInformation[0])).c_str(), DateTime::unixTimeToString(&t).c_str());
+        if (count % 5 == 0)
+        {
+            printf("%sext / %sxit: ", formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[E]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+            input(uInput);
+
+            if (toupper(uInput[0]) == 'N')
+            {
+                start += maxRows;
+                system(CLEAR);
+                printf("Available Doctors: %d - %d\n", start + 1, start + maxRows);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (count % 5 == 0)
+    {
+        printf("No records found!\n");
+    }
+    haltProgram();
+
+    pFile->close();
+}
+
+void showAppointments()
+{
+    std::string uInput, fileLine;
+    File msgFile("appointments.db");
+    std::fstream* pFile = msgFile.getFile();
+    pFile->open("appointments.db", std::ios::in);
+
+    unsigned int start = 0;
+    unsigned int count = 0;
+    const unsigned int maxRows = 5;
+
+    std::vector<std::string> userInformation;
+    system(CLEAR);
+    printf("Appointments: %d - %d\n", start + 1, start + maxRows);
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        printf("%d\t%s\t%s\t%s\n", ++count, userInformation[0].c_str(), userInformation[1].c_str(), userInformation[2].c_str());
+        if (count % 5 == 0)
+        {
+            printf("%sext / %sxit: ", formatText("[N]", TextColor::fYellow, TextColor::bDefault, true).c_str(), formatText("[E]", TextColor::fYellow, TextColor::bDefault, true).c_str());
+            input(uInput);
+
+            if (toupper(uInput[0]) == 'N')
+            {
+                start += maxRows;
+                system(CLEAR);
+                printf("Appointments: %d - %d\n", start + 1, start + maxRows);
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    if (count % 5 == 0)
+    {
+        printf("No messages found!\n");
+    }
+    haltProgram();
+
+    pFile->close();
+}
+
+void sendMessages(std::unique_ptr<User>& user)
+{
+    system(CLEAR);
+    std::string filePath = "users.db";
+    File userDb(filePath);
+    std::fstream* pFile = userDb.getFile();
+    bool userExists = false;
+    std::string fileLine;
+
+    pFile->open(filePath, std::ios::in);
+
+    std::string username;
+    printf("Please enter %s to whom you want to message: ", formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+    input(username);
+
+    while (username.length() == 0)
+    {
+        printf("%s %s \nPlease enter %s again: ", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("username-small").c_str(), formatText("username", TextColor::fDefault, TextColor::bDefault, true).c_str());
+        input(username);
+    }
+
+    std::vector<std::string> userInformation;
+    while (std::getline(*pFile, fileLine))
+    {
+        if (fileLine[0] == ';')
+            continue;
+        std::stringstream ss(fileLine);
+        std::string value;
+        userInformation.clear();
+
+        while (getline(ss, value, '|'))
+        {
+            userInformation.push_back(value);
+        }
+
+        if ((UserType)std::stoi(userInformation[0]) == UserType::Patient)
+        {
+            if (username == userInformation[1])
+            {
+                userExists = true;
+                std::string message;
+                printf("Please enter your message: ");
+                input(message);
+
+                File messageFile("messages.db");
+                messageFile.write(user->getUsername() + "|" + username + "|" + message + "|" + DateTime::getCurrent());
+                printf("Your message has been sent to %s\n", username.c_str());
+                haltProgram();
+                break;
+            }
+        }
+    }
+    pFile->close();
+
+    if (!userExists)
+    {
+        printf("%s %s\n", formatText("[Error]:", TextColor::fRed, TextColor::bDefault, true).c_str(), Error::get("user-not-found").c_str());
+        haltProgram();
+    }
+}
+
+void addFunds(Hospital& rH)
+{
+    double funds;
+    printf("Enter the amount of funds you want to deposit: ");
+    input(funds);
+
+    rH.rGetDispensary().rGetBudget() += funds;
+
+    printf("%f funds have been added, new balance is %f\n", funds, rH.rGetDispensary().getBudget().getAmount());
+    haltProgram();
+}
 
 void run()
 {
     loading(1);
     bool quit;
     Hospital hospital;
+    hospital.rGetUser() = nullptr;
     MenuLevel currentMenu;
     std::string menuChoice;
     std::vector<std::string> menuBreadcrumbs;
-    std::unique_ptr<User> pLoggedInUser = nullptr;
-    init(quit, pLoggedInUser, currentMenu, menuChoice);
+    init(quit, hospital.rGetUser(), currentMenu, menuChoice);
     do
     {
-        menu(pLoggedInUser, currentMenu, menuBreadcrumbs);
+        menu(hospital.rGetUser(), currentMenu, menuBreadcrumbs);
         input(menuChoice);
-        processInput(menuChoice, menuBreadcrumbs, pLoggedInUser, hospital, currentMenu, quit);
+        processInput(menuChoice, menuBreadcrumbs, hospital.rGetUser(), hospital, currentMenu, quit);
     } while (!quit);
 }

@@ -1,80 +1,16 @@
 #include "Hospital.hpp"
+#include "Dispensary.hpp"
 
 Hospital::Hospital()
-    :mPatientRoomsFull(0), mStaffRoomsFull(0), mWaitingRoomsFull(0)
+    :mpUserLoggedIn(nullptr)
 {}
 
-unsigned int& Hospital::rPatientRoomsFull()
+std::unique_ptr<User>& Hospital::rGetUser()
 {
-    return mPatientRoomsFull;
+    return mpUserLoggedIn;
 }
 
-unsigned int& Hospital::rStaffRoomsFull()
+Dispensary& Hospital::rGetDispensary()
 {
-    return mStaffRoomsFull;
-}
-
-unsigned int& Hospital::rWaitingRoomsFull()
-{
-    return mWaitingRoomsFull;
-}
-
-void Hospital::setPatientRoomsFull(unsigned int amount)
-{
-    mPatientRoomsFull = amount;
-}
-
-void Hospital::setStaffRoomsFull(unsigned int amount)
-{
-    mStaffRoomsFull = amount;
-}
-
-void Hospital::setWaitingRoomsFull(unsigned int amount)
-{
-    mWaitingRoomsFull = amount;
-}
-
-void Hospital::setPatientsCount(unsigned int amount)
-{
-    mPatientsCount = amount;
-}
-
-void Hospital::setStaffCount(unsigned int amount)
-{
-    mStaffCount = amount;
-}
-
-void Hospital::setVisitorsCount(unsigned int amount)
-{
-    mVisitorsCount = amount;
-}
-
-unsigned int Hospital::getPatientRoomsFull() const
-{
-    return mPatientRoomsFull;
-}
-
-unsigned int Hospital::getStaffRoomsFull() const
-{
-    return mStaffRoomsFull;
-}
-
-unsigned int Hospital::getWaitingRoomsFull() const
-{
-    return mWaitingRoomsFull;
-}
-
-unsigned int Hospital::getPatientsCount() const
-{
-    return mPatientsCount;
-}
-
-unsigned int Hospital::getStaffCount() const
-{
-    return mStaffCount;
-}
-
-unsigned int Hospital::getVisitorsCount() const
-{
-    return mVisitorsCount;
+    return mDispensary;
 }

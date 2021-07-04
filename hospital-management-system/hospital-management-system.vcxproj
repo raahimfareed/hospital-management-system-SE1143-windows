@@ -139,23 +139,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="budget.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="datetime.cpp" />
+    <ClCompile Include="dispensary.cpp" />
     <ClCompile Include="error.cpp" />
     <ClCompile Include="file.cpp" />
     <ClCompile Include="functions.cpp" />
     <ClCompile Include="hospital.cpp" />
+    <ClCompile Include="log.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="menu.cpp" />
     <ClCompile Include="user.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Budget.hpp" />
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="DateTime.hpp" />
+    <ClInclude Include="Dispensary.hpp" />
     <ClInclude Include="Error.hpp" />
     <ClInclude Include="File.hpp" />
     <ClInclude Include="Functions.hpp" />
     <ClInclude Include="Hospital.hpp" />
+    <ClInclude Include="Log.hpp" />
     <ClInclude Include="Menu.hpp" />
     <ClInclude Include="User.hpp" />
     <ClInclude Include="Utils.hpp" />

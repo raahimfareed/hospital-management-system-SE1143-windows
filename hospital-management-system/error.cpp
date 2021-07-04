@@ -15,5 +15,7 @@ std::map<std::string, std::string> Error::mErrors = {
     {"user-exists", "This user already exists!"},
     {"password-empty", "Your password must be at least 8 characters long."},
     {"user-not-found", "User not found"},
-    {"password-invalid", "Your password is invalid"}
+    {"password-invalid", "Your password is invalid"},
+    {"max-password-tries", "Maximum password tries have reached, please try again later!"},
+    {"invalid-option", "Invalid Option!"}
 };

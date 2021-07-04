@@ -11,12 +11,7 @@ struct DateTime
     std::string mUtcString;
 
     DateTime();
-
-    DateTime(time_t creationTime)
-        :mCreationTime(creationTime)
-    {
-        mString = ctime(&mCreationTime);
-        mpLocalTime = localtime(&mCreationTime);
-        mUtcString = std::to_string(mpLocalTime->tm_year + 1900) + '-' + std::to_string(mpLocalTime->tm_mon + 1) + '-' + std::to_string(mpLocalTime->tm_mday) + 'D' + std::to_string(mpLocalTime->tm_hour) + ':' + std::to_string(mpLocalTime->tm_min) + ':' + std::to_string(mpLocalTime->tm_sec) + "T-PKT";
-    }
+    DateTime(time_t creationTime);
+    static std::string unixTimeToString(const time_t* t);
+    static std::string getCurrent();
 };

@@ -7,6 +7,7 @@
 #include "Utils.hpp"
 #include "User.hpp"
 #include "File.hpp"
+#include "Dispensary.hpp"
 #include "Hospital.hpp"
 
 void loading(const size_t& loop = 3);
@@ -69,8 +70,26 @@ void login(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedIn
 
 void signup(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, Hospital& hospital, MenuLevel& currentMenu, const UserType& userType);
 
+void logout(std::vector<std::string>& breadcrumb, std::unique_ptr<User>& loggedInUser, MenuLevel& currentMenu);
 
+void showUsers(const UserType& type);
 
+void resetProgram();
 
+void makeAppointment(std::unique_ptr<User>& loggedInUser, std::vector<std::string>& breadcrumb, MenuLevel& currentMenu);
+
+void createAppointment(std::unique_ptr<User>& loggedInUser);
+
+void showMessages();
+
+void showMessages(std::unique_ptr<User>& loggedInUser);
+
+void showDoctors();
+
+void showAppointments();
+
+void sendMessages(std::unique_ptr<User>& user);
+
+void addFunds(Hospital& rH);
 
 void run();

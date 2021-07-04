@@ -41,10 +41,9 @@ enum class MenuLevel
     Login,
     Signup,
 
-    PatientAppointments,
-    PatientMessages,
-    PatientJournal,
-    PatientCheckout,
-
-    UserLogout
+    Appointments,
+    Messages,
+    Journal,
+    Dispensary,
+    Drug
 };
